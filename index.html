@@ -213,7 +213,7 @@
                 menuItem.className = 'menu-item';
                 menuItem.setAttribute('data-name', item.name);
                 menuItem.setAttribute('data-price', item.price);
-                menuItem.onclick = () => orderItem(item.name, item.price); // Updated here
+                menuItem.onclick = () => orderItem(item.name, item.price);
                 menuItem.innerHTML = `
                     <button>${item.name}</button>
                     <p>${formatPrice(item.price)}</p>
