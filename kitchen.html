@@ -89,23 +89,12 @@
     <audio id="notificationSound" src="https://raw.githubusercontent.com/jlmksi/restaurant-order/main/assets/notification.mp3" preload="auto"></audio>
     <div class="alert" id="alertMessage"></div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
-    <script>
-        // Firebase 설정
-        const firebaseConfig = {
-            apiKey: "AIzaSyCtRN3QMnHxLQEKAAn0y3q8qRvjDs8BKJA",
-            authDomain: "restaurant-orders-new.firebaseapp.com",
-            projectId: "restaurant-orders-new",
-            storageBucket: "restaurant-orders-new.appspot.com",
-            messagingSenderId: "500015809437",
-            appId: "1:500015809437:web:49d6b18dbea33114d06574",
-            measurementId: "G-79XGTK3L3F"
-        };
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // Firebase 초기화
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const supabaseUrl = 'https://gpsupybqyhijihabqcyx.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi6Imdwc3VweWJxeWhpamloYWJxY3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc1Mjk3MzMsImV4cCI6MjAzMzEwNTczM30.OdQODIBP918QRVWoKtQi6dr41HGnWyva7ajWWe0FJ4g'
+        const supabase = createClient(supabaseUrl, supabaseKey)
 
         const orderListElement = document.getElementById('orderList');
         const alertMessageElement = document.getElementById('alertMessage');
@@ -131,7 +120,7 @@
             orderElement.id = order.id;
             orderElement.innerHTML = `
                 <h3>주문 번호: ${order.orderNumber}</h3>
-                <p class="order-time">${new Date(order.time.seconds * 1000).toLocaleString()}</p>
+                <p class="order-time">${new Date(order.time).toLocaleString()}</p>
                 <p class="table-number">테이블 번호: ${order.tableNumber}</p>
                 <p class="menu">${Object.keys(order.orders).map(key => `${key} ${order.orders[key].quantity}개`).join('<br>')}</p>
                 <button class="complete-button" onclick="completeOrder('${order.id}')">완료</button>
@@ -139,37 +128,48 @@
             orderListElement.appendChild(orderElement);
         }
 
-        function completeOrder(orderId) {
+        async function completeOrder(orderId) {
             if (confirm('이 주문을 완료하시겠습니까?')) {
-                db.collection('orders').doc(orderId).delete().then(() => {
+                const { error } = await supabase
+                    .from('orders')
+                    .delete()
+                    .eq('id', orderId);
+
+                if (error) {
+                    console.error('Error removing document: ', error);
+                } else {
                     document.getElementById(orderId).remove();
                     showAlert('주문이 완료되었습니다.');
-                }).catch(error => {
-                    console.error('Error removing document: ', error);
-                });
+                }
             }
         }
 
-        function loadOrders() {
+        async function loadOrders() {
             let initialLoad = true;
-            db.collection('orders').orderBy('orderNumber').onSnapshot((snapshot) => {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .order('orderNumber', { ascending: true });
+
+            if (error) {
+                console.error("Error loading orders: ", error);
+            } else {
                 orderListElement.innerHTML = '';
-                snapshot.forEach((doc) => {
-                    const order = { id: doc.id, ...doc.data() };
+                data.forEach(order => {
                     renderOrder(order);
                 });
-                if (initialLoad) {
-                    initialLoad = false;
-                } else {
+                if (!initialLoad) {
                     playNotificationSound();
                     showAlert('주문이 들어왔습니다');
                 }
-            }, error => {
-                console.error("Error loading orders: ", error);
-            });
+                initialLoad = false;
+            }
         }
 
         loadOrders();
+
+        // Use a polling mechanism to fetch new orders every 10 seconds
+        setInterval(loadOrders, 10000);
     </script>
 </body>
 </html>
