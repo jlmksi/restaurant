@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>통계 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1em;
+        }
+        .statistics {
+            padding: 1em;
+        }
+        .stat-box {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin: 0.5em;
+            padding: 0.5em;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .stat-box h2 {
+            margin: 0 0 0.5em;
+            font-size: 1.2em;
+        }
+        .home-link {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            text-align: center;
+            width: 50px;
+            height: 50px;
+            line-height: 30px;
+            text-decoration: none;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>통계 페이지</h1>
+        <a href="index.html" class="home-link">🏠</a>
+    </header>
+    <div class="statistics" id="statisticsContainer"></div>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+    <script>
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtRN3QMnHxLQEKAAn0y3q8qRvjDs8BKJA",
+            authDomain: "restaurant-orders-new.firebaseapp.com",
+            projectId: "restaurant-orders-new",
+            storageBucket: "restaurant-orders-new.appspot.com",
+            messagingSenderId: "500015809437",
+            appId: "1:500015809437:web:49d6b18dbea33114d06574",
+            measurementId: "G-79XGTK3L3F"
+        };
+
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const statisticsContainer = document.getElementById('statisticsContainer');
+
+        function renderStatistics() {
+            db.collection('orders').onSnapshot(snapshot => {
+                statisticsContainer.innerHTML = '';
+                const menuCount = {};
+                snapshot.forEach(doc => {
+                    const order = doc.data();
+                    for (const item in order.orders) {
+                        if (menuCount[item]) {
+                            menuCount[item] += order.orders[item].quantity;
+                        } else {
+                            menuCount[item] = order.orders[item].quantity;
+                        }
+                    }
+                });
+
+                for (const item in menuCount) {
+                    const statBox = document.createElement('div');
+                    statBox.className = 'stat-box';
+                    statBox.innerHTML = `
+                        <h2>${item}</h2>
+                        <p>${menuCount[item]}개 판매됨</p>
+                    `;
+                    statisticsContainer.appendChild(statBox);
+                }
+            });
+        }
+
+        renderStatistics();
+    </script>
+</body>
+</html>

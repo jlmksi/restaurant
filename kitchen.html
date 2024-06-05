@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>주방 화면</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f8f8;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            text-align: center;
+            padding: 1em;
+            border-radius: 0 0 10px 10px;
+        }
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 1em;
+        }
+        .order {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            margin: 0.5em;
+            padding: 1em;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .order h3 {
+            margin: 0.5em 0;
+            font-size: 1.2em;
+        }
+        .order p {
+            margin: 0.5em 0;
+            font-size: 1em;
+        }
+        .order .order-time {
+            font-size: 0.8em;
+        }
+        .order .table-number, .order .menu {
+            font-size: 1.5em;
+            color: green;
+            font-weight: bold;
+        }
+        .order div {
+            border-top: 1px solid #ddd;
+            padding-top: 0.5em;
+        }
+        .complete-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-top: 1em;
+        }
+        .alert {
+            background-color: #ff9800;
+            color: white;
+            padding: 1em;
+            text-align: center;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+            border-radius: 10px;
+            font-size: 2em;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>주방 화면</h1>
+    </header>
+    <div class="container" id="orderList"></div>
+    <audio id="notificationSound" src="https://raw.githubusercontent.com/jlmksi/restaurant-order/main/assets/notification.mp3" preload="auto"></audio>
+    <div class="alert" id="alertMessage"></div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
+    <script>
+        // Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyCtRN3QMnHxLQEKAAn0y3q8qRvjDs8BKJA",
+            authDomain: "restaurant-orders-new.firebaseapp.com",
+            projectId: "restaurant-orders-new",
+            storageBucket: "restaurant-orders-new.appspot.com",
+            messagingSenderId: "500015809437",
+            appId: "1:500015809437:web:49d6b18dbea33114d06574",
+            measurementId: "G-79XGTK3L3F"
+        };
+
+        // Firebase 초기화
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const orderListElement = document.getElementById('orderList');
+        const alertMessageElement = document.getElementById('alertMessage');
+        const notificationSound = document.getElementById('notificationSound');
+
+        function playNotificationSound() {
+            notificationSound.play().catch(error => {
+                console.error('Audio play failed:', error);
+            });
+        }
+
+        function showAlert(message) {
+            alertMessageElement.textContent = message;
+            alertMessageElement.style.display = 'block';
+            setTimeout(() => {
+                alertMessageElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function renderOrder(order) {
+            const orderElement = document.createElement('div');
+            orderElement.className = 'order';
+            orderElement.id = order.id;
+            orderElement.innerHTML = `
+                <h3>주문 번호: ${order.orderNumber}</h3>
+                <p class="order-time">${new Date(order.time.seconds * 1000).toLocaleString()}</p>
+                <p class="table-number">테이블 번호: ${order.tableNumber}</p>
+                <p class="menu">${Object.keys(order.orders).map(key => `${key} ${order.orders[key].quantity}개`).join('<br>')}</p>
+                <button class="complete-button" onclick="completeOrder('${order.id}')">완료</button>
+            `;
+            orderListElement.appendChild(orderElement);
+        }
+
+        function completeOrder(orderId) {
+            if (confirm('이 주문을 완료하시겠습니까?')) {
+                db.collection('orders').doc(orderId).delete().then(() => {
+                    document.getElementById(orderId).remove();
+                    showAlert('주문이 완료되었습니다.');
+                }).catch(error => {
+                    console.error('Error removing document: ', error);
+                });
+            }
+        }
+
+        function loadOrders() {
+            let initialLoad = true;
+            db.collection('orders').orderBy('orderNumber').onSnapshot((snapshot) => {
+                orderListElement.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const order = { id: doc.id, ...doc.data() };
+                    renderOrder(order);
+                });
+                if (initialLoad) {
+                    initialLoad = false;
+                } else {
+                    playNotificationSound();
+                    showAlert('주문이 들어왔습니다');
+                }
+            }, error => {
+                console.error("Error loading orders: ", error);
+            });
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>
