@@ -58,32 +58,26 @@
         <a href="index.html" class="home-link">🏠</a>
     </header>
     <div class="statistics" id="statisticsContainer"></div>
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
-    <script>
-        // Firebase 설정
-        const firebaseConfig = {
-            apiKey: "AIzaSyCtRN3QMnHxLQEKAAn0y3q8qRvjDs8BKJA",
-            authDomain: "restaurant-orders-new.firebaseapp.com",
-            projectId: "restaurant-orders-new",
-            storageBucket: "restaurant-orders-new.appspot.com",
-            messagingSenderId: "500015809437",
-            appId: "1:500015809437:web:49d6b18dbea33114d06574",
-            measurementId: "G-79XGTK3L3F"
-        };
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // Firebase 초기화
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const supabaseUrl = 'https://gpsupybqyhijihabqcyx.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi6Imdwc3VweWJxeWhpamloYWJxY3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc1Mjk3MzMsImV4cCI6MjAzMzEwNTczM30.OdQODIBP918QRVWoKtQi6dr41HGnWyva7ajWWe0FJ4g'
+        const supabase = createClient(supabaseUrl, supabaseKey)
 
         const statisticsContainer = document.getElementById('statisticsContainer');
 
-        function renderStatistics() {
-            db.collection('orders').onSnapshot(snapshot => {
+        async function renderStatistics() {
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*');
+
+            if (error) {
+                console.error("Error loading statistics: ", error);
+            } else {
                 statisticsContainer.innerHTML = '';
                 const menuCount = {};
-                snapshot.forEach(doc => {
-                    const order = doc.data();
+                data.forEach(order => {
                     for (const item in order.orders) {
                         if (menuCount[item]) {
                             menuCount[item] += order.orders[item].quantity;
@@ -102,7 +96,7 @@
                     `;
                     statisticsContainer.appendChild(statBox);
                 }
-            });
+            }
         }
 
         renderStatistics();
