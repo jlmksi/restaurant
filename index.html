@@ -188,7 +188,7 @@
         import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
         const supabaseUrl = 'https://gpsupybqyhijihabqcyx.supabase.co'
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwc3VweWJxeWhpamloYWJxY3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc1Mjk3MzMsImV4cCI6MjAzMzEwNTczM30.OdQODIBP918QRVWoKtQi6dr41HGnWyva7ajWWe0FJ4g'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZi6Imdwc3VweWJxeWhpamloYWJxY3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc1Mjk3MzMsImV4cCI6MjAzMzEwNTczM30.OdQODIBP918QRVWoKtQi6dr41HGnWyva7ajWWe0FJ4g'
         const supabase = createClient(supabaseUrl, supabaseKey)
 
         const menuContainer = document.getElementById('menuContainer');
@@ -213,7 +213,7 @@
                 menuItem.className = 'menu-item';
                 menuItem.setAttribute('data-name', item.name);
                 menuItem.setAttribute('data-price', item.price);
-                menuItem.setAttribute('onclick', `orderItem('${item.name}', ${item.price})`);
+                menuItem.onclick = () => orderItem(item.name, item.price); // Updated here
                 menuItem.innerHTML = `
                     <button>${item.name}</button>
                     <p>${formatPrice(item.price)}</p>
@@ -298,7 +298,7 @@
                 menuItem.setAttribute('data-price', newPrice);
                 menuItem.querySelector('button').textContent = newName;
                 menuItem.querySelector('p').textContent = formatPrice(newPrice);
-                menuItem.setAttribute('onclick', `orderItem('${newName}', ${newPrice})`);
+                menuItem.onclick = () => orderItem(newName, newPrice);
                 const index = menu.findIndex(item => item.name === name);
                 menu[index] = { name: newName, price: parseInt(newPrice) };
                 saveMenu();
