@@ -184,23 +184,12 @@
             <button class="finalize-order-button" onclick="finalizeOrder()">주문 결정</button>
         </aside>
     </div>
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.2/firebase-firestore-compat.js"></script>
-    <script>
-        // Firebase 설정
-        const firebaseConfig = {
-            apiKey: "AIzaSyCtRN3QMnHxLQEKAAn0y3q8qRvjDs8BKJA",
-            authDomain: "restaurant-orders-new.firebaseapp.com",
-            projectId: "restaurant-orders-new",
-            storageBucket: "restaurant-orders-new.appspot.com",
-            messagingSenderId: "500015809437",
-            appId: "1:500015809437:web:49d6b18dbea33114d06574",
-            measurementId: "G-79XGTK3L3F"
-        };
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-        // Firebase 초기화
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const supabaseUrl = 'https://gpsupybqyhijihabqcyx.supabase.co'
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdwc3VweWJxeWhpamloYWJxY3l4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTc1Mjk3MzMsImV4cCI6MjAzMzEwNTczM30.OdQODIBP918QRVWoKtQi6dr41HGnWyva7ajWWe0FJ4g'
+        const supabase = createClient(supabaseUrl, supabaseKey)
 
         const menuContainer = document.getElementById('menuContainer');
         const orderList = document.getElementById('orderList');
@@ -345,7 +334,7 @@
             localStorage.setItem('orders', JSON.stringify(orders));
         }
 
-        function finalizeOrder() {
+        async function finalizeOrder() {
             const tableNumber = prompt('테이블 번호를 입력하세요:');
             if (tableNumber) {
                 let orderSummary = `테이블 번호: ${tableNumber}\n\n`;
@@ -358,33 +347,40 @@
                 const confirmOrder = confirm(`${orderSummary}\n\n주문을 완료하시겠습니까?`);
                 if (confirmOrder) {
                     alert('주문이 완료되었습니다');
-                    saveOrder(tableNumber, orders, totalPrice);
+                    await saveOrder(tableNumber, orders, totalPrice);
                     location.reload(); // Reset the page after order is completed
                 }
             }
         }
 
-        function saveOrder(tableNumber, orders, totalPrice) {
-            db.collection('orders').orderBy('orderNumber', 'desc').limit(1).get().then(querySnapshot => {
-                let lastOrderNumber = 0;
-                if (!querySnapshot.empty) {
-                    lastOrderNumber = querySnapshot.docs[0].data().orderNumber;
-                }
-                const newOrderNumber = lastOrderNumber + 1;
-                const orderData = { tableNumber, orders, totalPrice, time: new Date(), orderNumber: newOrderNumber };
+        async function saveOrder(tableNumber, orders, totalPrice) {
+            const { data: lastOrder, error } = await supabase
+                .from('orders')
+                .select('orderNumber')
+                .order('orderNumber', { ascending: false })
+                .limit(1)
+                .single();
+            
+            let lastOrderNumber = 0;
+            if (lastOrder) {
+                lastOrderNumber = lastOrder.orderNumber;
+            }
+            const newOrderNumber = lastOrderNumber + 1;
+            const orderData = { tableNumber, orders, totalPrice, time: new Date(), orderNumber: newOrderNumber };
 
-                db.collection('orders').add(orderData)
-                    .then(() => {
-                        console.log('Order saved to Firestore');
-                    })
-                    .catch((error) => {
-                        console.error('Error saving order to Firestore: ', error);
-                    });
+            const { error: insertError } = await supabase
+                .from('orders')
+                .insert(orderData);
 
-                const savedOrders = JSON.parse(localStorage.getItem('savedOrders')) || [];
-                savedOrders.push(orderData);
-                localStorage.setItem('savedOrders', JSON.stringify(savedOrders));
-            });
+            if (insertError) {
+                console.error('Error saving order to Supabase: ', insertError);
+            } else {
+                console.log('Order saved to Supabase');
+            }
+
+            const savedOrders = JSON.parse(localStorage.getItem('savedOrders')) || [];
+            savedOrders.push(orderData);
+            localStorage.setItem('savedOrders', JSON.stringify(savedOrders));
         }
 
         renderMenu();
